@@ -1,9 +1,8 @@
 % ================================================
-% RUN MY ALGORITHM - All 20 files
+% MY ALGORITHM - 3 Experiments
 % ================================================
 clear; clc; close all;
 
-% Open files
 Filename = {
 '0075C','1206C','2433C','3630C','4137C',...
 '5580C','6255C','7565C','8299C','9472C',...
@@ -13,88 +12,145 @@ Filename = {
 
 Folder1 = './wav/';
 Folder2 = './seg/';
+Fs      = 16000;
 
-% Experimental parameters
-Time      = 0.1;
-Threshold = 1.4;
-winsize   = 350;
-Fs        = 16000;
+% Time tolerance axis (x-axis for all graphs)
+Time = [0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10];
 
-totalMatch = 0;
-totalRef   = 0;
-totalDet   = 0;
+%% ============================================
+%% EXPERIMENT 1: Vary Threshold
+%% Fix: WinSize=250
+%% ============================================
+ThresholdList = [1.4 1.8 2.2 2.6];
+winsize       = 250;
 
-% Save result to file
-FOut = fopen('./result/myalgo_result.txt', 'wt');
-fprintf(FOut, 'MY ALGORITHM - Adaptive Energy + ZCR\n');
-fprintf(FOut, 'Threshold=%.1f | WinSize=%d | TimeTol=%.2f\n\n', Threshold, winsize, Time);
-fprintf(FOut, 'File\t\tP(M)\t\tP(O)\t\tP(I)\n');
+% Store match rate for each threshold across time
+MatchAll_T = zeros(length(ThresholdList), length(Time));
 
-fprintf('=== MY ALGORITHM (Adaptive Energy + ZCR) ===\n');
-fprintf('Threshold=%.1f | WinSize=%d | TimeTol=%.2f\n\n', Threshold, winsize, Time);
-fprintf('%-12s  %6s  %6s  %6s\n', 'File', 'P(M)', 'P(O)', 'P(I)');
-fprintf('%s\n', repmat('-',1,40));
+FOut = fopen('./result/myalgo_threshold.txt', 'wt');
+fprintf(FOut, 'MY ALGORITHM - Vary Threshold\n');
+fprintf(FOut, 'WinSize=%d\n\n', winsize);
+fprintf(FOut, 'Threshold\t');
+for i = 1:length(Time)
+    fprintf(FOut, 'T=%.2f\t', Time(i));
+end
+fprintf(FOut, '\n');
 
-for n = 1:length(Filename)
+for z = 1:length(ThresholdList)
+    fprintf('Threshold = %.1f\n', ThresholdList(z));
 
-    % Load wav
-    Y   = audioread([Folder1 char(Filename(n)) '.wav']);
-    Y   = Y(:,1);
+    for i = 1:length(Time)
+        N = 0; M = 0;
 
-    % Load reference seg
-    fid = fopen([Folder2 char(Filename(n)) '.seg'], 'r');
-    S1  = fscanf(fid, '%g') * Fs;
-    fclose(fid);
+        for n = 1:length(Filename)
+            Y   = audioread([Folder1 char(Filename(n)) '.wav']);
+            Y   = Y(:,1);
 
-    % Run MY algorithm
-    [S2, K] = MyAlgorithm(Y, Threshold, winsize);
+            fid = fopen([Folder2 char(Filename(n)) '.seg'], 'r');
+            S1  = fscanf(fid, '%g') * Fs;
+            fclose(fid);
 
-    % Evaluate
-    Match = Find_Match(S1, S2, Time);
-    p     = length(S1);
+            [S2, K] = MyAlgorithm(Y, ThresholdList(z), winsize);
 
-    PM = Match / p;
-    PO = (p - Match) / p;
-    if K > 0
-        PI = (K - Match) / K;
-    else
-        PI = 1;
+            Match = Find_Match(S1, S2, Time(i));
+            M     = M + Match;
+            N     = N + K;
+        end
+
+        P = 8 * length(Filename);
+        MatchAll_T(z, i) = M / P;
     end
 
-    fprintf('%-12s  %6.2f  %6.2f  %6.2f\n', char(Filename(n)), PM, PO, PI);
-    fprintf(FOut, '%s\t\t%.2f\t\t%.2f\t\t%.2f\n', char(Filename(n)), PM, PO, PI);
-
-    totalMatch = totalMatch + Match;
-    totalRef   = totalRef   + p;
-    totalDet   = totalDet   + K;
-
-    % Plot file pertama sahaja
-    if n == 1
-        figure('Name', 'MyAlgo - First File');
-        PlotSegment2(Y, S1, S2);
-        sgtitle(['My Algorithm: ' char(Filename(n))]);
+    fprintf(FOut, 'T%.1f\t\t', ThresholdList(z));
+    for i = 1:length(Time)
+        fprintf(FOut, '%.2f\t\t', MatchAll_T(z,i));
     end
+    fprintf(FOut, '\n');
 end
-
-% Overall result
-Mr = totalMatch / totalRef;
-Or = (totalRef  - totalMatch) / totalRef;
-if totalDet > 0
-    Ir = (totalDet - totalMatch) / totalDet;
-else
-    Ir = 0;
-end
-
-fprintf('%s\n', repmat('-',1,40));
-fprintf('%-12s  %6.2f  %6.2f  %6.2f\n', 'OVERALL', Mr, Or, Ir);
-fprintf('\nMatch Rate    : %.4f (%.1f%%)\n', Mr, Mr*100);
-fprintf('Omission Rate : %.4f (%.1f%%)\n', Or, Or*100);
-fprintf('Insertion Rate: %.4f (%.1f%%)\n', Ir, Ir*100);
-
-fprintf(FOut, '\nOVERALL:\n');
-fprintf(FOut, 'Match Rate     = %.4f\n', Mr);
-fprintf(FOut, 'Omission Rate  = %.4f\n', Or);
-fprintf(FOut, 'Insertion Rate = %.4f\n', Ir);
 fclose(FOut);
 
-disp('=== DONE - Check result/myalgo_result.txt ===');
+% Plot — semua threshold dalam satu graph
+figure('Name', 'MyAlgo - Vary Threshold');
+hold on;
+colors = {'r-o','b-o','g-o','k-o'};
+for z = 1:length(ThresholdList)
+    plot(Time, MatchAll_T(z,:), colors{z}, 'LineWidth', 2);
+end
+hold off;
+title('Experimental Result on Threshold Value');
+xlabel('Time Tolerance');
+ylabel('Match Rate');
+ylim([0 1]);
+legend_labels = arrayfun(@(x) sprintf('T%.1f', x), ThresholdList, 'UniformOutput', false);
+legend(legend_labels, 'Location', 'southeast');
+grid on;
+
+%% ============================================
+%% EXPERIMENT 2: Vary Window Size
+%% Fix: Threshold=2.2
+%% ============================================
+WinSizes = [200 250 300 350];
+FixThres = 2.2;
+
+% Store match rate for each winsize across time
+MatchAll_W = zeros(length(WinSizes), length(Time));
+
+FOut = fopen('./result/myalgo_winsize.txt', 'wt');
+fprintf(FOut, 'MY ALGORITHM - Vary Window Size\n');
+fprintf(FOut, 'Threshold=%.1f\n\n', FixThres);
+fprintf(FOut, 'WinSize\t\t');
+for i = 1:length(Time)
+    fprintf(FOut, 'T=%.2f\t', Time(i));
+end
+fprintf(FOut, '\n');
+
+for w = 1:length(WinSizes)
+    fprintf('WinSize = %d\n', WinSizes(w));
+
+    for i = 1:length(Time)
+        N = 0; M = 0;
+
+        for n = 1:length(Filename)
+            Y   = audioread([Folder1 char(Filename(n)) '.wav']);
+            Y   = Y(:,1);
+
+            fid = fopen([Folder2 char(Filename(n)) '.seg'], 'r');
+            S1  = fscanf(fid, '%g') * Fs;
+            fclose(fid);
+
+            [S2, K] = MyAlgorithm(Y, FixThres, WinSizes(w));
+
+            Match = Find_Match(S1, S2, Time(i));
+            M     = M + Match;
+            N     = N + K;
+        end
+
+        P = 8 * length(Filename);
+        MatchAll_W(w, i) = M / P;
+    end
+
+    fprintf(FOut, 'W%d\t\t', WinSizes(w));
+    for i = 1:length(Time)
+        fprintf(FOut, '%.2f\t\t', MatchAll_W(w,i));
+    end
+    fprintf(FOut, '\n');
+end
+fclose(FOut);
+
+% Plot — semua winsize dalam satu graph
+figure('Name', 'MyAlgo - Vary Window Size');
+hold on;
+colors = {'r-o','b-o','g-o','k-o'};
+for w = 1:length(WinSizes)
+    plot(Time, MatchAll_W(w,:), colors{w}, 'LineWidth', 2);
+end
+hold off;
+title('Experimental Result on WinSize Value');
+xlabel('Time Tolerance');
+ylabel('Match Rate');
+ylim([0 1]);
+legend_labels = arrayfun(@(x) sprintf('W%d', x), WinSizes, 'UniformOutput', false);
+legend(legend_labels, 'Location', 'southeast');
+grid on;
+
+disp('=== DONE - Check result/ folder ===');
