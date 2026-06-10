@@ -5,8 +5,29 @@
 
 
 %open fail
-Filename = {'3630E','4137E','5580E','6255E','7565E','8299E','9472E','2433E','1206E','0075E',
-            '9472C','8299C','7565C','6255C','5580C','4137C','2433C','1206C','0075C'};
+% open files
+Filename = {
+'3630E',
+'4137E',
+'5580E',
+'6255E',
+'7565E',
+'8299E',
+'9472E',
+'0075E',
+'2433E',
+'1206E',
+'0075C',
+'1206C',
+'2433C',
+'3630C',
+'4137C',
+'5580C',
+'6255C',
+'7565C',
+'8299C',
+'9472C'
+};
 Folder1='./wav/';    % folder of the pattern
 Folder2='./seg/';   % folder consist the reference point files
 
@@ -14,9 +35,9 @@ FOut = fopen('./result/record1.txt','wt');
 Fs = 16000; % sampling rate
 
 %Experimetal parameters
-Time = 0.02;   %time tolerence
-Threshold = 0.05;
-winsize = 256;
+Time = 0.10;   %time tolerence
+Threshold = 1.4;
+winsize = 250;
 
 %printf the parameters infomations in the file
 fprintf(FOut,' Information on all %d patterns');
@@ -63,7 +84,7 @@ for n=1:length(Filename) % number of files in the folder1
       
      fprintf(FOut,'\tPattern %d\t%2.2f \t%2.2f \t%2.2f\n',n,PM,PO,PI);
      
-    pause; 
+    %pause; 
     %empty variables
     clear Y;
     clear S1;
