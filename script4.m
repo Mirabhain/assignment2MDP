@@ -5,15 +5,35 @@
 
 
 %open fail
-Filename = {'b0075','b1206','b2433','b3630','b4137','b5580','b6255','b7565','b8299','b9472',
-            'f0075','f1206','f2433','f3630','f4137','f5580','f6255','f7565','f8299','f9472'};
+Filename = {
+'3630E',
+'4137E',
+'5580E',
+'6255E',
+'7565E',
+'8299E',
+'9472E',
+'0075E',
+'2433E',
+'1206E',
+'0075C',
+'1206C',
+'2433C',
+'3630C',
+'4137C',
+'5580C',
+'6255C',
+'7565C',
+'8299C',
+'9472C'
+};
 Folder1='./wav/';    % folder of the pattern
 Folder2='./seg/';   % folder consist the reference point files
 
 %Experimetal parameters
-Time = 0.01:0.01:0.1;   %time tolerence
-Threshold = 1.1:0.1:2.0;
-winsize = 256;
+Time = 0.1;   %time tolerence
+Threshold = 1.6;
+winsize = 250;
 
 for z=1:10
 fname="./result/record_comb_threshold"+Threshold(z)+".txt";
@@ -46,7 +66,7 @@ for n=1:length(Filename) % number of files in the folder1
     Y = audioread(FILE2);
     
     %calculate the automatic segmentation / call function
-    [S2, K] = Algorithm1(Y,Threshold(z),winsize);
+    [S2, K] = algo1(Y,Threshold(z),winsize);
            
     %plot the file with segmentation points (both reference and manual)
        %figure('Name',char(Filename(n)),'NumberTitle','on')
@@ -67,7 +87,7 @@ for n=1:length(Filename) % number of files in the folder1
       
      fprintf(FOut,'\tPattern %d\t%2.2f \t%2.2f \t%2.2f\n',n,PM,PO,PI);
      
-    pause; 
+    %pause
     %empty variables
     clear Y;
     clear S1;
